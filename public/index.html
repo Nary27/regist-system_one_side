@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>受付確認システム（メイン＝メニュー,全体(あいうえお),全体(エリア順) + サブタブ）</title>
+  <title>受付確認システム（メイン=メニュー,全体(あいうえお),全体(エリア) + 来場者内訳）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -15,162 +15,163 @@
       margin:1rem 0; text-align:center;
     }
 
-    /* メインタブ: メニュー, 全体(あいうえお), 全体(エリア順) */
+    /* メインボタン */
     .main-buttons {
       display: flex; 
       gap:0.5rem;
       justify-content: center;
-      margin-bottom: 0.5rem;
-      flex-wrap: wrap;        /* 横幅狭い場合折り返し */
+      margin-bottom:0.5rem;
+      flex-wrap:wrap;
     }
     .main-button {
       padding: 0.8rem 1.2rem;
-      background: #ddd;
-      border: 2px solid #666;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      white-space: nowrap;
+      background:#ddd;
+      border:2px solid #666;
+      border-radius:5px;
+      cursor:pointer;
+      font-weight:bold;
+      white-space:nowrap;
     }
     .main-button.active {
-      background: peachpuff;
-      border-color: #333;
+      background:peachpuff; border-color:#333;
     }
 
-    /* サブボタン or プルダウン */
+    /* サブボタン */
     .sub-buttons {
-      display: flex; 
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 1rem;
+      display:flex;
+      gap:0.5rem;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-bottom:1rem;
     }
     .sub-button {
-      padding: 0.5rem 1rem;
-      background: #eee;
-      border: 2px solid #666;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      white-space: nowrap;
+      padding:0.5rem 1rem;
+      background:#eee;
+      border:2px solid #666;
+      border-radius:5px;
+      cursor:pointer;
+      font-size:0.9rem;
+      white-space:nowrap;
     }
     .sub-button.active {
-      background: #ffc;
-      border-color: #333;
+      background:#ffc; border-color:#333;
     }
     #subSelect {
-      display: none;
-      margin: 0 auto; margin-bottom:1rem;
+      display:none;
+      margin:0 auto; margin-bottom:1rem;
       max-width:300px;
       font-size:1rem;
     }
 
-    /* テーブル表示 */
     .table-container {
-      width: 95%;
-      margin: 0 auto;
-      overflow-x: auto;
+      width:95%; margin:0 auto; overflow-x:auto;
     }
     table {
-      width: 100%;
-      min-width: 1520px;
-      border-collapse: collapse;
-      border-spacing: 0;
-      margin-top: 0.5rem;
+      width:100%;
+      min-width:1520px;
+      border-collapse:collapse;
+      border-spacing:0;
+      margin-top:0.5rem;
     }
     th, td {
-      border: 1px solid #ddd;
-      padding: 0.8rem;
-      text-align: center;
+      border:1px solid #ddd;
+      padding:0.8rem;
+      text-align:center;
     }
-    .status-coming    { background-color: #F0f080; color: #000; }
-    .status-leaving   { background-color: #0073a8; color: #000; }
-    .status-not-arrived { background-color: #fff;   color: #000; }
-    .status-cancelled { background-color: gray;   color: #fff; }
+    .status-coming    { background-color:#F0f080; color:#000; }
+    .status-leaving   { background-color:#0073a8; color:#000; }
+    .status-not-arrived { background-color:#fff;   color:#000; }
+    .status-cancelled { background-color:gray;   color:#fff; }
+
+    /* 来場者内訳テーブル */
+    .summary-table {
+      border-collapse:collapse;
+      border-spacing:0;
+      margin:1rem auto 0;
+      min-width:300px; max-width:620px;
+    }
+    .summary-table th, .summary-table td {
+      border:1px solid #aaa; padding:0.5rem; text-align:center;
+    }
 
     @media (max-width:600px) {
-      .main-buttons {
-        flex-wrap: wrap;
-      }
-      .sub-buttons {
-        display: none; /* 狭い画面ならサブボタンは非表示にしてプルダウン使用 */
-      }
-      #subSelect {
-        display: block; /* モバイル時にプルダウン表示 */
-      }
-      table {
-        min-width: 770px;
-      }
-      th, td {
-        font-size: 0.5rem; 
-        padding: 0.3rem;
-      }
-      h1 {
-        font-size: 15px;
-      }
+      .main-buttons { flex-wrap:wrap; }
+      .sub-buttons { display:none; }
+      #subSelect { display:block; }
+
+      table { min-width:770px; }
+      th, td { font-size:0.5rem; padding:0.3rem; }
+      h1 { font-size:15px; }
     }
   </style>
 </head>
 <body>
   <h1 id="page-title">Loading...</h1>
 
-  <!-- メインボタン (メニュー, 全体(あいうえお), 全体(エリア順)) -->
+  <!-- メインボタン -->
   <div class="main-buttons" id="main-buttons">
     <div class="main-button" data-mode="menu">メニュー</div>
     <div class="main-button" data-mode="all-aiueo">全体(あいうえお順)</div>
     <div class="main-button" data-mode="all-area">全体(エリア順)</div>
   </div>
 
-  <!-- サブボタン行 & プルダウン -->
+  <!-- サブボタン & プルダウン -->
   <div class="sub-buttons" id="sub-buttons"></div>
   <select id="subSelect"></select>
 
+  <!-- メインテーブル表示 -->
   <div class="table-container" id="table-container"></div>
+
+  <!-- 来場者内訳表示 (メニュー時) -->
+  <div id="summary-table-area" style="width:95%; margin:0 auto;"></div>
 
   <script>
     let allSheetNames = [];
     let allData = {};
-
     let currentMainMode = "menu";
     let currentSubSheet = "";
 
-    window.addEventListener("DOMContentLoaded", async () => {
+    window.addEventListener("DOMContentLoaded", async ()=>{
       // 1) /info
       const infoRes = await fetch("/info");
       const info = await infoRes.json();
       document.getElementById("page-title").textContent = info.title || "スプレッドシート";
       allSheetNames = info.sheetNames || [];
 
-      // 2) 初回 batch-data
+      // 2) batch-data 初回
       await fetchAllData();
 
-      // 初期メインモード
+      // メインモード=menu
       setMainMode("menu");
       highlightMainButton("menu");
       renderSubButtons("menu");
 
       // 30秒ポーリング
-      setInterval(async () => {
+      setInterval(async ()=>{
         await fetchAllData();
-        // 再描画
+        // subSheet更新
         if(currentSubSheet){
           renderTable(currentSubSheet);
         }
-      }, 30000);
+        // メニューなら再度 来場数内訳
+        if(currentMainMode==="menu"){
+          await showSummaryTable();
+        }
+      },30000);
     });
 
-    // batch-data取得
+    // /batch-data
     async function fetchAllData(){
       const res=await fetch("/batch-data");
       if(!res.ok){
-        console.error("[fetchAllData] error", res.status);
+        console.error("[fetchAllData] error",res.status);
         return;
       }
       allData=await res.json();
-      console.log("[fetchAllData]", allData);
+      console.log("[fetchAllData]",allData);
     }
 
-    // メインボタン押下
+    // メインボタン
     document.getElementById("main-buttons").addEventListener("click",(e)=>{
       const btn=e.target.closest(".main-button");
       if(!btn)return;
@@ -182,9 +183,16 @@
 
     function setMainMode(mode){
       currentMainMode=mode;
-      currentSubSheet=""; // サブシート初期化
+      currentSubSheet="";
       document.getElementById("table-container").innerHTML="";
+      // メニューの場合は来場数内訳表示
+      if(mode==="menu"){
+        showSummaryTable();
+      } else {
+        document.getElementById("summary-table-area").innerHTML="";
+      }
     }
+
     function highlightMainButton(mode){
       document.querySelectorAll(".main-button").forEach(b=>{
         b.classList.remove("active");
@@ -194,33 +202,28 @@
       });
     }
 
-    // サブボタン or プルダウン生成
+    // サブボタンorプルダウン
     function renderSubButtons(mode){
       const subContainer=document.getElementById("sub-buttons");
       const subSelect=document.getElementById("subSelect");
       subContainer.innerHTML="";
       subSelect.innerHTML="";
 
-      // モードによって表示するシートを絞る
       let filtered=[];
       if(mode==="menu"){
+        // 全シートをサブに
         filtered=[...allSheetNames];
       } else if(mode==="all-aiueo"){
-        // 全体(あいうえお順) を含むシートだけ
-        // 例: n.includes("全体(あいうえお順)")
-        filtered=allSheetNames.filter(n=>n.includes("全体(あいうえお順)"));
+        filtered=allSheetNames.filter(n=> n.includes("全体(あいうえお順)"));
       } else if(mode==="all-area"){
-        // 全体(エリア順) を含むシート
-        filtered=allSheetNames.filter(n=>n.includes("全体(エリア順)"));
+        filtered=allSheetNames.filter(n=> n.includes("全体(エリア順)"));
       }
 
-      // PC環境 → サブボタン表示, モバイル → プルダウン
       const isMobile=(window.innerWidth<=600);
       if(isMobile){
         subContainer.style.display="none";
         subSelect.style.display="block";
 
-        // プルダウン
         const placeholderOpt=document.createElement("option");
         placeholderOpt.value="";
         placeholderOpt.textContent="▼シートを選択";
@@ -240,8 +243,6 @@
       } else {
         subContainer.style.display="flex";
         subSelect.style.display="none";
-
-        // サブボタン
         filtered.forEach(sheetName=>{
           const b=document.createElement("div");
           b.classList.add("sub-button");
@@ -264,9 +265,8 @@
           btn.classList.add("active");
         }
       });
-      // プルダウン同期
       const sel=document.getElementById("subSelect");
-      if(sel) sel.value=sheetName;
+      sel.value=sheetName;
     }
 
     // arrival/departure => statusText
@@ -298,6 +298,7 @@
       });
     }
 
+    // テーブル
     function renderTable(sheetName){
       const container=document.getElementById("table-container");
       container.innerHTML="";
@@ -308,14 +309,12 @@
         return;
       }
 
-      // 状態テキスト付与
       data.forEach(r=>{
         if(!r.statusText){
           r.statusText=getStatusText(r);
         }
       });
 
-      // 全列定義
       const columns=[
         { key:"no",            header:"No" },
         { key:"statusText",    header:"状態" },
@@ -328,8 +327,8 @@
         { key:"region",        header:"地域区分" }
       ];
 
-      // 「全体(あいうえお順)」だけ空欄列を削除
       let visibleCols=columns;
+      // 全体(あいうえお順) だけ空欄列除去
       if(sheetName.includes("全体(あいうえお順)")){
         visibleCols=filterEmptyColumns(data, columns);
         if(visibleCols.length===0){
@@ -338,8 +337,9 @@
         }
       }
 
-      // テーブル生成
       const table=document.createElement("table");
+
+      // thead
       const thead=document.createElement("thead");
       let thHtml="<tr>";
       visibleCols.forEach(col=>{
@@ -349,6 +349,7 @@
       thead.innerHTML=thHtml;
       table.appendChild(thead);
 
+      // tbody
       const tbody=document.createElement("tbody");
       data.forEach(row=>{
         let stClass="status-not-arrived";
@@ -374,6 +375,47 @@
       table.appendChild(tbody);
 
       container.appendChild(table);
+    }
+
+    // メニュー時に来場者内訳を表示
+    async function showSummaryTable(){
+      const summaryArea=document.getElementById("summary-table-area");
+      summaryArea.innerHTML="";
+      const res=await fetch("/summary-data");
+      if(!res.ok){
+        summaryArea.innerHTML="<p>来場者内訳の取得エラー</p>";
+        return;
+      }
+      const tableData=await res.json();
+      if(tableData.length===0){
+        summaryArea.innerHTML="<p>来場者内訳がありません</p>";
+        return;
+      }
+
+      let html=`<table class="summary-table"><tbody>`;
+      tableData.forEach(row=>{
+        const isSpecial=(row[0]==="総来場者数(新規含む)");
+        let rowStyle="";
+        if(isSpecial){
+          rowStyle=` style="background-color:#eee; font-weight:bold;"`;
+        }
+        html+=`<tr${rowStyle}>`;
+        // 1列目 => 右寄せ
+        if(row.length>0){
+          html+=`<td style="font-size:1.2rem; text-align:right;">${row[0]}</td>`;
+        }
+        // 2列目 => 左寄せ
+        if(row.length>1){
+          html+=`<td style="font-size:1.2rem; text-align:left;">${row[1]}</td>`;
+        }
+        // 3列目以降 => 中央
+        for(let c=2; c<row.length; c++){
+          html+=`<td style="font-size:1.2rem;">${row[c]}</td>`;
+        }
+        html+="</tr>";
+      });
+      html+="</tbody></table>";
+      summaryArea.innerHTML=html;
     }
   </script>
 </body>
