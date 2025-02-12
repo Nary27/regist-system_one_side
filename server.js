@@ -1,5 +1,5 @@
 /*************************************
- * server.js (Heroku-ready, Polling Example + BasicAuth)
+ * server.js (Heroku-ready, BasicAuth=0126/0126)
  *************************************/
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -31,20 +31,19 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-/** ★ Basic認証 (ID=0126, PW=0126) を全エンドポイントに適用 */
+/** Basic認証 (ID=0126, PW=0126) */
 function basicAuth(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader) {
     res.setHeader("WWW-Authenticate", 'Basic realm="Restricted"');
     return res.status(401).send("Authentication required");
   }
-  // Basic 認証のフォーマット: "Basic base64(<user>:<pass>)"
   const base64Credentials = authHeader.split(" ")[1];
   const decoded = Buffer.from(base64Credentials, "base64").toString();
   const [user, pass] = decoded.split(":");
-
+  // ID=0126, PW=0126
   if (user === "0126" && pass === "0126") {
-    next(); // 認証OK
+    next();
   } else {
     res.setHeader("WWW-Authenticate", 'Basic realm="Restricted"');
     return res.status(401).send("Invalid credentials");
@@ -52,13 +51,10 @@ function basicAuth(req, res, next) {
 }
 app.use(basicAuth);
 
-/** 
- * 3) 静的ファイル (index.htmlなど)
- *    Basic認証が通った後に配信される
- */
+/** 静的ファイル配信 (index.htmlなど) */
 app.use(express.static(path.join(__dirname, "public")));
 
-// 4) Google Sheets 関数
+// Google Sheets API
 async function getSpreadsheetInfo() {
   const sheets = google.sheets({ version: "v4" });
   try {
@@ -68,7 +64,7 @@ async function getSpreadsheetInfo() {
     });
     const title = resp.data.properties.title;
     let sheetNames = resp.data.sheets.map(s => s.properties.title);
-    // 除外
+    // 除外シートを弾く
     sheetNames = sheetNames.filter(name => !EXCLUDED_SHEETS.includes(name));
     return { title, sheetNames };
   } catch (err) {
@@ -94,26 +90,28 @@ async function getMultipleSheetsData(sheetNames) {
       const [rawSheetName] = vr.range.split("!");
       const sheetName = rawSheetName.replace(/^'/, "").replace(/'$/, "");
       const rawData = vr.values || [];
-      let parsed = rawData.slice(1).map(row => {
-        // B=0, C=1, D=2, E=3 ... N=12
+
+      // B=0, C=1, D=2, E=3,..., N=12
+      // gBlank列(4) は無視
+      const parsed = rawData.slice(1).map(row => {
         const no        = row[0] || "";
-        const rawArr    = (row[1]||"").toUpperCase();
-        const rawDep    = (row[2]||"").toUpperCase();
+        const rawArr    = (row[1]||"").toUpperCase();  // arrival
+        const rawDep    = (row[2]||"").toUpperCase();  // departure
         const drName    = row[3] || "";
-        const gBlank    = row[4] || "";
+        // row[4] => gBlank => ignore
         const furigana  = row[5] || "";
         const facility  = row[6] || "";
         const remarks   = row[7] || "";
         const arrTime   = row[9] || "";
         const depTime   = row[10]|| "";
         const region    = row[11]|| "";
-        const rawCancel = (row[12]||"").toUpperCase();
+        const rawCancel = (row[12]||"").toUpperCase(); // canceledByO
+
         return {
           no,
-          arrival    : (rawArr==="TRUE")?"true":"false",
-          departure  : (rawDep==="TRUE")?"true":"false",
+          arrival   : (rawArr==="TRUE") ? "true":"false",
+          departure : (rawDep==="TRUE") ? "true":"false",
           drName,
-          gBlank,
           furigana,
           facility,
           remarks,
@@ -132,33 +130,14 @@ async function getMultipleSheetsData(sheetNames) {
   }
 }
 
-async function getSummaryData() {
-  const sheets = google.sheets({ version: "v4" });
-  const range = `'来場数内訳'!A1:E13`;
-  try {
-    const resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range,
-      key: API_KEY
-    });
-    let tableData = resp.data.values || [];
-    tableData = tableData
-      .map(rowArr => rowArr.filter(cell => cell && cell.trim()))
-      .filter(r => r.length>0);
-    return tableData;
-  } catch (err) {
-    console.error("[getSummaryData] error:", err.message);
-    return [];
-  }
-}
-
-// 5) ルート
+// /info
 app.get("/info", async (req, res) => {
   console.log("[GET /info]");
   const info = await getSpreadsheetInfo();
   res.json(await info);
 });
 
+// /batch-data
 app.get("/batch-data", async (req, res) => {
   console.log("[GET /batch-data]");
   try {
@@ -171,21 +150,10 @@ app.get("/batch-data", async (req, res) => {
   }
 });
 
-app.get("/summary-data", async (req, res) => {
-  console.log("[GET /summary-data]");
-  try {
-    const table = await getSummaryData();
-    res.json(table);
-  } catch (err) {
-    console.error("[getSummaryData] error:", err.message);
-    res.status(500).send("Error fetching summary data");
-  }
-});
-
 /** 
- * Webhook不要の場合、コメントアウト or 削除
+ * Webhook等が不要なら省略
  * 
-app.post("/api/sheetUpdate", (req, res) => {
+app.post("/api/sheetUpdate", (req, res)=>{
   ...
 });
 */

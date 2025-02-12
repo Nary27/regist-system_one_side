@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>受付確認システム（状態列が全て「未入場」なら隠す）</title>
+  <title>受付確認システム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -53,8 +53,8 @@
     table {
       width: 100%;
       min-width: 1520px;
-      border-collapse: collapse; /* セルの余白を詰める */
-      border-spacing: 0;
+      border-collapse: collapse; 
+      border-spacing: 0;        
       margin-top: 0.5rem;
     }
     th, td {
@@ -62,26 +62,23 @@
       padding: 0.8rem;
       text-align: center;
     }
-    /* 行のステータス別の色 */
     .status-coming    { background-color:#F0f080; color:#000; }
     .status-leaving   { background-color:#0073a8; color:#000; }
     .status-not-arrived { background-color:#fff;   color:#000; }
     .status-cancelled { background-color:gray;   color:#fff; }
 
     @media (max-width:600px) {
-      /* 幅600px以下はタブ非表示、プルダウン表示 */
       .tabs {
         display: none !important;
       }
       #sheetSelect {
         display: block !important;
       }
-
       table {
         min-width: 770px;
       }
       th, td {
-        font-size: 0.5rem;
+        font-size: 0.5rem; 
         padding: 0.3rem;
       }
       h1 {
@@ -93,9 +90,10 @@
 <body>
   <h1 id="page-title">Loading...</h1>
 
-  <!-- PCタブ -->
+  <!-- PC用タブ -->
   <div class="tabs" id="tabs"></div>
-  <!-- モバイルプルダウン -->
+
+  <!-- モバイル用プルダウン -->
   <select id="sheetSelect"></select>
 
   <div class="table-container" id="table-container"></div>
@@ -105,18 +103,17 @@
     let allData = {};
     let currentSheet = "";
 
-    // DOM読み込み後
     window.addEventListener("DOMContentLoaded", async () => {
-      // 1) シート一覧
+      // 1) /info でスプレッドシート情報
       const infoRes = await fetch("/info");
       const info = await infoRes.json();
       document.getElementById("page-title").textContent = info.title || "スプレッドシート";
       allSheetNames = info.sheetNames || [];
 
-      // 2) batch-data
+      // 2) batch-dataを初回取得
       await fetchAllData();
 
-      // 3) タブ & プルダウン
+      // 3) PCタブ & モバイルプルダウンの両方を生成
       renderTabs(allSheetNames);
       renderSelect(allSheetNames);
 
@@ -126,35 +123,35 @@
       }
 
       // 5) 30秒ポーリング
-      setInterval(async()=>{
+      setInterval(async ()=>{
         await fetchAllData();
-        if(currentSheet){
+        if (currentSheet) {
           renderTable(currentSheet);
         }
-      },30000);
+      }, 30000);
     });
 
-    // /batch-dataを取得
+    // batch-data
     async function fetchAllData(){
-      const res=await fetch("/batch-data");
-      if(!res.ok){
-        console.error("[fetchAllData] error",res.status);
+      const res = await fetch("/batch-data");
+      if (!res.ok) {
+        console.error("[fetchAllData] error", res.status);
         return;
       }
-      allData=await res.json();
-      console.log("[fetchAllData]",allData);
+      allData = await res.json();
+      console.log("[fetchAllData]", allData);
     }
 
-    // PCタブ表示
+    // PCタブ
     function renderTabs(sheetNames){
-      const tabsContainer=document.getElementById("tabs");
-      tabsContainer.innerHTML="";
-      sheetNames.forEach(sheet=>{
+      const tabs = document.getElementById("tabs");
+      tabs.innerHTML="";
+      sheetNames.forEach(sName=>{
         const btn=document.createElement("div");
         btn.classList.add("tab-button");
-        btn.textContent=sheet;
-        btn.addEventListener("click",()=>setActiveSheet(sheet));
-        tabsContainer.appendChild(btn);
+        btn.textContent=sName;
+        btn.addEventListener("click", ()=> setActiveSheet(sName));
+        tabs.appendChild(btn);
       });
     }
 
@@ -162,54 +159,37 @@
     function renderSelect(sheetNames){
       const sel=document.getElementById("sheetSelect");
       sel.innerHTML="";
-      sheetNames.forEach(s=>{
+      sheetNames.forEach(sName=>{
         const opt=document.createElement("option");
-        opt.value=s;
-        opt.textContent=s;
+        opt.value=sName;
+        opt.textContent=sName;
         sel.appendChild(opt);
       });
-      sel.addEventListener("change",e=>{
+      sel.addEventListener("change",(e)=>{
         setActiveSheet(e.target.value);
       });
     }
 
     function setActiveSheet(sheetName){
       currentSheet=sheetName;
-      // タブハイライト
+      // タブのactive
       document.querySelectorAll(".tab-button").forEach(btn=>{
         btn.classList.remove("active");
         if(btn.textContent===sheetName){
           btn.classList.add("active");
         }
       });
-      // プルダウン同期
+      // プルダウンも同期
       const sel=document.getElementById("sheetSelect");
-      if(sel) sel.value=sheetName;
+      sel.value=sheetName;
 
       renderTable(sheetName);
     }
 
     /**
-     * 全行の状態テキストを取得し、もし全て同じ＆未入場なら
-     * 状態列をスキップする
+     * arrival, departure, canceledByO から状態テキストを計算
      */
-    function allSameStatusAreUnarrived(data){
-      // 状態テキストを計算
-      const statuses = data.map(row => getStatusText(row));
-      // 全てが同じ？
-      const unique = new Set(statuses);
-      if(unique.size===1 && unique.has("未入場")){
-        return true; // 全行「未入場」だけ
-      }
-      return false;
-    }
-
-    // 各行の状態テキストを返す関数
     function getStatusText(row){
-      // arrival="true" && departure="false" => 来場中
-      // departure="true" => 退場済み
-      // canceledByO => キャンセル
-      // それ以外 => 未入場
       let st="未入場";
       if(row.arrival==="true" && row.departure==="false"){
         st="来場中";
@@ -222,7 +202,23 @@
       return st;
     }
 
-    // テーブル描画
+    /**
+     * 全行をチェックし、すべて空の列を除外する
+     */
+    function filterEmptyColumns(data, columns){
+      return columns.filter(col=>{
+        let hasNonEmpty=false;
+        for(const row of data){
+          const val=(row[col.key]||"").trim();
+          if(val!==""){
+            hasNonEmpty=true;
+            break;
+          }
+        }
+        return hasNonEmpty; // trueの列だけ表示
+      });
+    }
+
     function renderTable(sheetName){
       const container=document.getElementById("table-container");
       container.innerHTML="";
@@ -232,76 +228,74 @@
         container.innerHTML="<p>該当データがありません。</p>";
         return;
       }
-      // 状態列を隠すかどうか判定
-      const hideStatusCol = allSameStatusAreUnarrived(data);
+
+      // arrival/departure => statusText
+      data.forEach(row=>{
+        if(!row.statusText){
+          row.statusText=getStatusText(row);
+        }
+      });
+
+      // 全列定義 (あいうえお順の時だけ空欄列除去)
+      const columns = [
+        { key:"no",            header:"No" },
+        { key:"statusText",    header:"状態" },
+        { key:"drName",        header:"DR氏名" },
+        { key:"furigana",      header:"フリガナ" },
+        { key:"facility",      header:"施設名" },
+        { key:"remarks",       header:"備考" },
+        { key:"arrivalTime",   header:"ご来場時間" },
+        { key:"departureTime", header:"ご退場時間" },
+        { key:"region",        header:"地域区分" }
+      ];
+
+      let visibleColumns=columns;
+      if(sheetName==="全体(あいうえお順)"){
+        visibleColumns=filterEmptyColumns(data,columns);
+        if(visibleColumns.length===0){
+          container.innerHTML="<p>すべて空欄のため表示できる列がありません。</p>";
+          return;
+        }
+      }
 
       const table=document.createElement("table");
+
+      // thead
       const thead=document.createElement("thead");
-      // 状態列を表示 or 非表示
-      let thHTML = `
-        <tr>
-          <th>No</th>
-      `;
-      if(!hideStatusCol){
-        thHTML += ` <th>状態</th> `;
-      }
-      thHTML += `
-          <th>DR氏名</th>
-          <th>フリガナ</th>
-          <th>施設名</th>
-          <th>備考</th>
-          <th>ご来場時間</th>
-          <th>ご退場時間</th>
-          <th>地域区分</th>
-        </tr>
-      `;
-      thead.innerHTML=thHTML;
+      let thHtml="<tr>";
+      visibleColumns.forEach(col=>{
+        thHtml+=`<th>${col.header}</th>`;
+      });
+      thHtml+="</tr>";
+      thead.innerHTML=thHtml;
       table.appendChild(thead);
 
+      // tbody
       const tbody=document.createElement("tbody");
       data.forEach(row=>{
-        const {
-          no, arrival, departure, drName,
-          furigana, facility, remarks,
-          arrivalTime, departureTime, region,
-          canceledByO
-        }=row;
-
-        // 状態テキスト & クラス
-        let statusText=getStatusText(row);
-        let statusClass="status-not-arrived";
-        if(statusText==="来場中"){
-          statusClass="status-coming";
-        } else if(statusText==="退場済み"){
-          statusClass="status-leaving";
-        } else if(statusText==="キャンセル"){
-          statusClass="status-cancelled";
+        // 行クラス
+        let stClass="status-not-arrived";
+        if(row.statusText==="来場中"){
+          stClass="status-coming";
+        } else if(row.statusText==="退場済み"){
+          stClass="status-leaving";
+        } else if(row.statusText==="キャンセル"){
+          stClass="status-cancelled";
         }
 
         const tr=document.createElement("tr");
-        tr.classList.add(statusClass);
+        tr.classList.add(stClass);
 
-        let rowHTML=`
-          <td>${no||""}</td>
-        `;
-        // 状態列を表示する場合のみ
-        if(!hideStatusCol){
-          rowHTML += `<td>${statusText}</td>`;
-        }
-        rowHTML += `
-          <td>${drName||""}</td>
-          <td>${furigana||""}</td>
-          <td>${facility||""}</td>
-          <td>${remarks||""}</td>
-          <td>${arrivalTime||""}</td>
-          <td>${departureTime||""}</td>
-          <td>${region||""}</td>
-        `;
-
-        tr.innerHTML=rowHTML;
+        let tdHtml="";
+        visibleColumns.forEach(col=>{
+          const val=(row[col.key]||"").trim();
+          tdHtml+=`<td>${val}</td>`;
+        });
+        tr.innerHTML=tdHtml;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
+
       container.appendChild(table);
     }
   </script>
