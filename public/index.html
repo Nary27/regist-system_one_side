@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>受付確認システム（単一タブ行のみ）</title>
+  <title>受付確認システム（PC＝タブ, モバイル＝プルダウン）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -14,16 +14,15 @@
     h1 {
       margin:1rem 0; text-align:center;
     }
-
-    /* タブ行を1段にし、横スクロールできるように */
+    /* PC向けタブエリア */
     .tabs {
       display: flex;
       gap: 0.5rem;
       justify-content: flex-start;
       margin-bottom: 0.5rem;
-      overflow-x: auto;       /* はみ出す場合は横スクロール */
-      flex-wrap: nowrap;      /* 折り返ししない */
-      padding: 0 1rem;        /* 左右に少し余白 */
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding: 0 1rem;
     }
     .tab-button {
       padding: 0.8rem 1.2rem;
@@ -32,17 +31,23 @@
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
-      white-space: nowrap;  /* テキスト折り返し防止 */
+      white-space: nowrap;
     }
     .tab-button.active {
       background: peachpuff;
       border-color: #333;
     }
+    /* モバイル用プルダウン */
+    #sheetSelect {
+      display: none;     /* デフォルト非表示(PC) */
+      margin: 0 auto; 
+      margin-bottom: 1rem;
+      max-width:300px;
+      font-size:1rem;
+    }
 
     .table-container {
-      width: 95%;
-      margin: 0 auto;
-      overflow-x: auto;
+      width: 95%; margin: 0 auto; overflow-x: auto;
     }
     table {
       width: 100%;
@@ -55,64 +60,76 @@
       padding: 0.8rem;
       text-align: center;
     }
-    /* ステータス別の行色 */
     .status-coming    { background-color: #F0f080; color: #000; }
     .status-leaving   { background-color: #0073a8; color: #000; }
     .status-not-arrived { background-color: #fff;   color: #000; }
     .status-cancelled { background-color: gray;   color: #fff; }
 
     @media (max-width:600px) {
-      table { min-width: 770px; }
-      th, td { font-size: 0.5rem; padding: 0.3rem; }
-      h1 { font-size: 15px; }
+      table { min-width:770px; }
+      th, td { font-size:0.5rem; padding:0.3rem; }
+      h1 { font-size:15px; }
     }
-
   </style>
 </head>
 <body>
   <h1 id="page-title">Loading...</h1>
 
-  <!-- 1行タブコンテナ -->
+  <!-- PC時のタブ（画面幅が広い場合にだけ表示）-->
   <div class="tabs" id="tabs"></div>
 
-  <!-- テーブル表示領域 -->
+  <!-- モバイル時はプルダウンを表示 -->
+  <select id="sheetSelect"></select>
+
+  <!-- テーブル表示 -->
   <div class="table-container" id="table-container"></div>
 
   <script>
     let allSheetNames = [];
     let allData = {};
-
-    let currentSheet = "";  // 今アクティブなシート名
-
+    let currentSheet = "";
+    
     window.addEventListener("DOMContentLoaded", async () => {
-      // 1) /info でシート一覧を取得
+      // 1) /infoでシート一覧を取得
       const infoRes = await fetch("/info");
       const info = await infoRes.json();
       document.getElementById("page-title").textContent = info.title || "スプレッドシート";
       allSheetNames = info.sheetNames || [];
 
-      // 2) 最初に batch-data を取得
+      // 2) 初回 batch-data を取得
       await fetchAllData();
 
-      // 3) タブを作成
-      renderTabs(allSheetNames);
+      // 3) PC or Mobile 判定 => UI切り替え
+      const isMobile = (window.innerWidth <= 600);
+      if (isMobile) {
+        // モバイル => プルダウンを表示
+        document.getElementById("tabs").style.display = "none";
+        document.getElementById("sheetSelect").style.display = "block";
+        renderSelect(allSheetNames);
+      } else {
+        // PC => 横スクロールタブを表示
+        document.getElementById("tabs").style.display = "flex";
+        document.getElementById("sheetSelect").style.display = "none";
+        renderTabs(allSheetNames);
+      }
 
-      // 4) 初期アクティブ: もしシートが1つ以上あれば最初のシートを表示
+      // 4) とりあえず最初のシートをアクティブに
       if (allSheetNames.length > 0) {
         setActiveSheet(allSheetNames[0]);
       }
 
-      // 5) 30秒ごとにポーリング
+      // 5) 30秒ポーリング
       setInterval(async () => {
         await fetchAllData();
-        // アクティブなシートがあれば再描画
         if (currentSheet) {
           renderTable(currentSheet);
         }
       }, 30000);
     });
 
-    // /batch-data を取得して allData に入れる
+    // ========================
+    // batch-data取得
+    // ========================
     async function fetchAllData() {
       const res = await fetch("/batch-data");
       if (!res.ok) {
@@ -123,35 +140,66 @@
       console.log("[fetchAllData]", allData);
     }
 
-    // タブを1行に並べて表示
+    // ========================
+    // PC: タブ生成
+    // ========================
     function renderTabs(sheetNames) {
       const tabsContainer = document.getElementById("tabs");
       tabsContainer.innerHTML = "";
-
-      sheetNames.forEach(sheetName => {
+      sheetNames.forEach(sheet => {
         const btn = document.createElement("div");
         btn.classList.add("tab-button");
-        btn.textContent = sheetName;
-        btn.addEventListener("click", () => setActiveSheet(sheetName));
+        btn.textContent = sheet;
+        btn.addEventListener("click", () => setActiveSheet(sheet));
         tabsContainer.appendChild(btn);
       });
     }
 
+    // ========================
+    // Mobile: プルダウン生成
+    // ========================
+    function renderSelect(sheetNames) {
+      const sel = document.getElementById("sheetSelect");
+      sel.innerHTML = "";
+      sheetNames.forEach(sName => {
+        const opt = document.createElement("option");
+        opt.value = sName;
+        opt.textContent = sName;
+        sel.appendChild(opt);
+      });
+      // changeイベント
+      sel.addEventListener("change", e => {
+        const chosen = e.target.value;
+        setActiveSheet(chosen);
+      });
+    }
+
+    // ========================
     // アクティブなシートを切り替え
+    // ========================
     function setActiveSheet(sheetName) {
       currentSheet = sheetName;
-      // タブのスタイル更新
+
+      // PCタブをactive切り替え
       document.querySelectorAll(".tab-button").forEach(btn => {
         btn.classList.remove("active");
         if (btn.textContent === sheetName) {
           btn.classList.add("active");
         }
       });
-      // テーブル描画
+
+      // Mobileのプルダウンも同期
+      const sel = document.getElementById("sheetSelect");
+      if (sel) {
+        sel.value = sheetName;
+      }
+
       renderTable(sheetName);
     }
 
-    // テーブルを描画
+    // ========================
+    // テーブル描画
+    // ========================
     function renderTable(sheetName) {
       const container = document.getElementById("table-container");
       container.innerHTML = "";
@@ -183,13 +231,13 @@
       const tbody = document.createElement("tbody");
       data.forEach(row => {
         const {
-          no, arrival, departure, drName,
-          gBlank, furigana, facility, remarks,
+          no, arrival, departure, drName, gBlank,
+          furigana, facility, remarks,
           arrivalTime, departureTime, region,
           canceledByO
         } = row;
 
-        // 状態クラス
+        // 状態判定
         let statusClass = "status-not-arrived";
         let statusText = "未入場";
         if (arrival === "true" && departure === "false") {
@@ -207,21 +255,20 @@
         const tr = document.createElement("tr");
         tr.classList.add(statusClass);
         tr.innerHTML = `
-          <td>${no || ""}</td>
+          <td>${no||""}</td>
           <td>${statusText}</td>
-          <td>${drName || ""}</td>
-          <td>${gBlank || ""}</td>
-          <td>${furigana || ""}</td>
-          <td>${facility || ""}</td>
-          <td>${remarks || ""}</td>
-          <td>${arrivalTime || ""}</td>
-          <td>${departureTime || ""}</td>
-          <td>${region || ""}</td>
+          <td>${drName||""}</td>
+          <td>${gBlank||""}</td>
+          <td>${furigana||""}</td>
+          <td>${facility||""}</td>
+          <td>${remarks||""}</td>
+          <td>${arrivalTime||""}</td>
+          <td>${departureTime||""}</td>
+          <td>${region||""}</td>
         `;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-
       container.appendChild(table);
     }
   </script>
