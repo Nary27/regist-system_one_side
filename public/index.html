@@ -12,34 +12,50 @@
       user-select:none;
     }
     h1 { margin:1rem 0; text-align:center; }
+
+    /* ★ 1段に収めるため、flex-wrap:nowrap と overflow-x:auto */
     .main-buttons {
-      display:flex; gap:0.5rem; justify-content:center;
-      margin-bottom:0.5rem; flex-wrap:wrap;
+      display:flex;
+      gap:0.5rem;
+      justify-content:center;
+      margin-bottom:0.5rem;
+      flex-wrap:nowrap;       /* ここを wrap→nowrap に変更 */
+      overflow-x:auto;        /* はみ出す場合は横スクロール */
     }
+
     .main-button {
       padding:0.8rem 1.2rem; background:#ddd;
       border:2px solid #666; border-radius:5px;
       cursor:pointer; font-weight:bold;
+      white-space:nowrap;  /* テキストの折り返し防止 */
     }
     .main-button.active {
       background:peachpuff; border-color:#333;
     }
+
+    /* ★ サブボタンも同様に1段にしたいので nowrap + horizontal scroll */
     .sub-buttons {
-      display:flex; gap:0.5rem; flex-wrap:wrap;
+      display:flex; gap:0.5rem;
       justify-content:center; margin-bottom:1rem;
+      flex-wrap:nowrap;       /* wrap→nowrap */
+      overflow-x:auto;        /* 横スクロール */
     }
+
     .sub-button {
       padding:0.5rem 1rem; background:#eee;
       border:2px solid #666; border-radius:5px;
       cursor:pointer; font-size:0.9rem;
+      white-space:nowrap;  /* テキストの折り返し防止 */
     }
     .sub-button.active {
       background:#ffc; border-color:#333;
     }
+
     #subSelect {
       display:none; margin:0 auto; margin-bottom:1rem;
       max-width:300px; font-size:1rem;
     }
+
     .table-container {
       width:95%; margin:0 auto; overflow-x:auto;
     }
@@ -57,9 +73,9 @@
     .status-cancelled { background-color:gray;   color:#fff; }
 
     @media (max-width:600px) {
-      table { min-width: 770px; }
+      table { min-width:770px; }
       th, td { font-size:0.5rem; padding:0.3rem; }
-      h1 {font-size: 15px;}
+      h1 { font-size:15px; }
     }
 
     /* 来場数内訳テーブル */
@@ -75,6 +91,7 @@
 <body>
   <h1 id="page-title">Loading...</h1>
 
+  <!-- メインボタン（1段で横スクロール） -->
   <div class="main-buttons" id="main-buttons">
     <div class="main-button" data-mode="menu">メニュー</div>
     <div class="main-button" data-mode="all-aiueo">全体(あいうえお順)</div>
@@ -83,6 +100,7 @@
     <div class="main-button" data-mode="opc">OPC</div>
   </div>
 
+  <!-- サブボタン（1段で横スクロール） -->
   <div class="sub-buttons" id="sub-buttons"></div>
   <select id="subSelect"></select>
 
@@ -127,7 +145,7 @@
         }
       }
 
-      // ★ 20秒ごとにポーリング
+      // ★ 30秒おきにポーリング
       setInterval(async () => {
         await fetchAllData();
         if (currentMainMode==="menu") {
@@ -135,7 +153,7 @@
         } else if (currentSubSheet) {
           renderTable(currentSubSheet);
         }
-      }, 30000); // ← 30000ミリ秒=30秒
+      }, 30000); // 30秒
     });
 
     // batch-data取得
@@ -231,7 +249,7 @@
       });
     }
 
-    // サブボタン or プルダウン生成
+    // サブボタン or プルダウン生成 (同様に1行にまとめる)
     function renderSubButtons(mode){
       const subContainer=document.getElementById("sub-buttons");
       const subSelect=document.getElementById("subSelect");
@@ -290,6 +308,7 @@
       if(store) localStorage.setItem("activeSubSheet",sheetName);
       renderTable(sheetName);
     }
+
     function highlightActiveSubButton(sheetName){
       document.querySelectorAll(".sub-button").forEach(btn=>{
         btn.classList.remove("active");
