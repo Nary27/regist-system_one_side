@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>受付確認システム（メイン=メニュー,全体(あいうえお),全体(エリア) + 来場者内訳）</title>
+  <title>受付確認システム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -12,19 +12,21 @@
       user-select:none;
     }
     h1 {
-      margin:1rem 0; text-align:center;
+      margin:1rem 0;
+      text-align:center;
     }
-
-    /* メインボタン */
-    .main-buttons {
-      display: flex; 
+    /* タブ行 (PC表示) */
+    .tabs {
+      display:flex;
       gap:0.5rem;
-      justify-content: center;
+      justify-content:flex-start;
       margin-bottom:0.5rem;
-      flex-wrap:wrap;
+      overflow-x:auto;
+      flex-wrap:nowrap;
+      padding:0 1rem;
     }
-    .main-button {
-      padding: 0.8rem 1.2rem;
+    .tab-button {
+      padding:0.8rem 1.2rem;
       background:#ddd;
       border:2px solid #666;
       border-radius:5px;
@@ -32,37 +34,20 @@
       font-weight:bold;
       white-space:nowrap;
     }
-    .main-button.active {
-      background:peachpuff; border-color:#333;
+    .tab-button.active {
+      background:peachpuff;
+      border-color:#333;
     }
 
-    /* サブボタン */
-    .sub-buttons {
-      display:flex;
-      gap:0.5rem;
-      flex-wrap:wrap;
-      justify-content:center;
-      margin-bottom:1rem;
-    }
-    .sub-button {
-      padding:0.5rem 1rem;
-      background:#eee;
-      border:2px solid #666;
-      border-radius:5px;
-      cursor:pointer;
-      font-size:0.9rem;
-      white-space:nowrap;
-    }
-    .sub-button.active {
-      background:#ffc; border-color:#333;
-    }
-    #subSelect {
+    /* モバイル用プルダウン */
+    #tabSelect {
       display:none;
       margin:0 auto; margin-bottom:1rem;
       max-width:300px;
       font-size:1rem;
     }
 
+    /* メインテーブル */
     .table-container {
       width:95%; margin:0 auto; overflow-x:auto;
     }
@@ -95,181 +80,178 @@
     }
 
     @media (max-width:600px) {
-      .main-buttons { flex-wrap:wrap; }
-      .sub-buttons { display:none; }
-      #subSelect { display:block; }
+      /* 幅600px以下 → PCタブを隠し、プルダウン表示 */
+      .tabs {
+        display:none !important;
+      }
+      #tabSelect {
+        display:block !important;
+      }
 
-      table { min-width:770px; }
-      th, td { font-size:0.5rem; padding:0.3rem; }
-      h1 { font-size:15px; }
+      table {
+        min-width:770px;
+      }
+      th, td {
+        font-size:0.5rem;
+        padding:0.3rem;
+      }
+      h1 {
+        font-size:15px;
+      }
     }
   </style>
 </head>
 <body>
   <h1 id="page-title">Loading...</h1>
 
-  <!-- メインボタン -->
-  <div class="main-buttons" id="main-buttons">
-    <div class="main-button" data-mode="menu">メニュー</div>
-    <div class="main-button" data-mode="all-aiueo">全体(あいうえお順)</div>
-    <div class="main-button" data-mode="all-area">全体(エリア順)</div>
-  </div>
+  <!-- PCタブ / モバイルプルダウン -->
+  <div class="tabs" id="tabs"></div>
+  <select id="tabSelect"></select>
 
-  <!-- サブボタン & プルダウン -->
-  <div class="sub-buttons" id="sub-buttons"></div>
-  <select id="subSelect"></select>
-
-  <!-- メインテーブル表示 -->
+  <!-- テーブル表示領域 -->
   <div class="table-container" id="table-container"></div>
 
-  <!-- 来場者内訳表示 (メニュー時) -->
+  <!-- メニュー(来場者内訳) 表示領域 -->
   <div id="summary-table-area" style="width:95%; margin:0 auto;"></div>
 
   <script>
-    let allSheetNames = [];
-    let allData = {};
-    let currentMainMode = "menu";
-    let currentSubSheet = "";
+    let tabList = [];       // ["メニュー", <sheet1>, <sheet2>, ...]
+    let allData = {};       // { sheetName: [ {...}, {...} ], ... }
+    let currentTab = "";    // 今アクティブなタブ ("メニュー" or シート名)
 
-    window.addEventListener("DOMContentLoaded", async ()=>{
-      // 1) /info
+    window.addEventListener("DOMContentLoaded", async () => {
+      // 1) /info でシート一覧取得
       const infoRes = await fetch("/info");
       const info = await infoRes.json();
       document.getElementById("page-title").textContent = info.title || "スプレッドシート";
-      allSheetNames = info.sheetNames || [];
 
-      // 2) batch-data 初回
+      // tabList[0] = "メニュー", それ以降が info.sheetNames
+      tabList = ["メニュー", ...info.sheetNames];
+
+      // 2) /batch-data
       await fetchAllData();
 
-      // メインモード=menu
-      setMainMode("menu");
-      highlightMainButton("menu");
-      renderSubButtons("menu");
+      // タブ生成 (PCは .tabs, モバイルは #tabSelect)
+      renderTabs(tabList);
+
+      // 最初は "メニュー" をアクティブに
+      setActiveTab("メニュー");
 
       // 30秒ポーリング
-      setInterval(async ()=>{
+      setInterval(async () => {
         await fetchAllData();
-        // subSheet更新
-        if(currentSubSheet){
-          renderTable(currentSubSheet);
+        if (currentTab==="メニュー") {
+          showSummaryTable(); // メニュー時→来場者内訳
+        } else if (currentTab) {
+          renderSheetTable(currentTab);
         }
-        // メニューなら再度 来場数内訳
-        if(currentMainMode==="menu"){
-          await showSummaryTable();
-        }
-      },30000);
+      }, 30000);
     });
 
-    // /batch-data
-    async function fetchAllData(){
-      const res=await fetch("/batch-data");
-      if(!res.ok){
-        console.error("[fetchAllData] error",res.status);
+    // batch-data取得
+    async function fetchAllData() {
+      const res = await fetch("/batch-data");
+      if (!res.ok) {
+        console.error("[fetchAllData] error", res.status);
         return;
       }
-      allData=await res.json();
-      console.log("[fetchAllData]",allData);
+      allData = await res.json();
+      console.log("[fetchAllData]", allData);
     }
 
-    // メインボタン
-    document.getElementById("main-buttons").addEventListener("click",(e)=>{
-      const btn=e.target.closest(".main-button");
-      if(!btn)return;
-      const mode=btn.dataset.mode;
-      setMainMode(mode);
-      highlightMainButton(mode);
-      renderSubButtons(mode);
-    });
+    // PCタブ & モバイルプルダウン生成
+    function renderTabs(tabs) {
+      const pcTabs = document.getElementById("tabs");
+      const mobSelect = document.getElementById("tabSelect");
 
-    function setMainMode(mode){
-      currentMainMode=mode;
-      currentSubSheet="";
-      document.getElementById("table-container").innerHTML="";
-      // メニューの場合は来場数内訳表示
-      if(mode==="menu"){
-        showSummaryTable();
-      } else {
-        document.getElementById("summary-table-area").innerHTML="";
-      }
-    }
+      pcTabs.innerHTML = "";
+      mobSelect.innerHTML = "";
 
-    function highlightMainButton(mode){
-      document.querySelectorAll(".main-button").forEach(b=>{
-        b.classList.remove("active");
-        if(b.dataset.mode===mode){
-          b.classList.add("active");
-        }
+      tabs.forEach(tName => {
+        // PC: tab-button
+        const btn = document.createElement("div");
+        btn.classList.add("tab-button");
+        btn.textContent = tName;
+        btn.addEventListener("click", () => setActiveTab(tName));
+        pcTabs.appendChild(btn);
+
+        // モバイル: select option
+        const opt = document.createElement("option");
+        opt.value = tName;
+        opt.textContent = tName;
+        mobSelect.appendChild(opt);
+      });
+
+      mobSelect.addEventListener("change", (e) => {
+        const chosen = e.target.value;
+        setActiveTab(chosen);
       });
     }
 
-    // サブボタンorプルダウン
-    function renderSubButtons(mode){
-      const subContainer=document.getElementById("sub-buttons");
-      const subSelect=document.getElementById("subSelect");
-      subContainer.innerHTML="";
-      subSelect.innerHTML="";
+    function setActiveTab(tabName) {
+      currentTab = tabName;
 
-      let filtered=[];
-      if(mode==="menu"){
-        // 全シートをサブに
-        filtered=[...allSheetNames];
-      } else if(mode==="all-aiueo"){
-        filtered=allSheetNames.filter(n=> n.includes("全体(あいうえお順)"));
-      } else if(mode==="all-area"){
-        filtered=allSheetNames.filter(n=> n.includes("全体(エリア順)"));
-      }
-
-      const isMobile=(window.innerWidth<=600);
-      if(isMobile){
-        subContainer.style.display="none";
-        subSelect.style.display="block";
-
-        const placeholderOpt=document.createElement("option");
-        placeholderOpt.value="";
-        placeholderOpt.textContent="▼シートを選択";
-        subSelect.appendChild(placeholderOpt);
-
-        filtered.forEach(sheetName=>{
-          const opt=document.createElement("option");
-          opt.value=sheetName;
-          opt.textContent=sheetName;
-          subSelect.appendChild(opt);
-        });
-        subSelect.onchange=(ev)=>{
-          const val=ev.target.value;
-          if(!val)return;
-          handleSubClick(val);
-        };
-      } else {
-        subContainer.style.display="flex";
-        subSelect.style.display="none";
-        filtered.forEach(sheetName=>{
-          const b=document.createElement("div");
-          b.classList.add("sub-button");
-          b.textContent=sheetName;
-          b.onclick=()=>handleSubClick(sheetName);
-          subContainer.appendChild(b);
-        });
-      }
-    }
-
-    function handleSubClick(sheetName){
-      highlightSubButton(sheetName);
-      currentSubSheet=sheetName;
-      renderTable(sheetName);
-    }
-    function highlightSubButton(sheetName){
-      document.querySelectorAll(".sub-button").forEach(btn=>{
+      // PCタブのactive
+      document.querySelectorAll(".tab-button").forEach(btn => {
         btn.classList.remove("active");
-        if(btn.textContent===sheetName){
+        if (btn.textContent === tabName) {
           btn.classList.add("active");
         }
       });
-      const sel=document.getElementById("subSelect");
-      sel.value=sheetName;
+      // モバイルselect
+      document.getElementById("tabSelect").value = tabName;
+
+      // 表示切り替え
+      if (tabName==="メニュー") {
+        // 来場者内訳
+        document.getElementById("table-container").innerHTML = "";
+        showSummaryTable();
+      } else {
+        // シート表示
+        document.getElementById("summary-table-area").innerHTML = "";
+        renderSheetTable(tabName);
+      }
     }
 
-    // arrival/departure => statusText
+    // 来場者内訳 (メニュー時に表示)
+    async function showSummaryTable() {
+      const summaryDiv = document.getElementById("summary-table-area");
+      summaryDiv.innerHTML = "";
+
+      // 例: A,B の 1~9 行
+      // → '来場数内訳'!A1:B9 にする(質問に合わせ)
+      const range = `'来場数内訳'!A1:B9`;
+      // 今回はサーバー側に /summary-data あり, そちらがA1~E13取得...
+      // 要件「A,Bの1~9」なら server.js で rangeを A1:B9 に変える or
+      // フロントから /summary-data?range=? ... など。簡便のため /summary-data 使う例にしますが、
+      // もし固定ならserver.jsで range: "'来場数内訳'!A1:B9" に変えて下さい
+
+      const res = await fetch("/summary-data");
+      if (!res.ok) {
+        summaryDiv.innerHTML = "<p>来場者内訳取得エラー</p>";
+        return;
+      }
+      const tableData = await res.json();
+      if (tableData.length===0){
+        summaryDiv.innerHTML="<p>来場者内訳がありません</p>";
+        return;
+      }
+
+      let html = `<table class="summary-table"><tbody>`;
+      tableData.forEach(row => {
+        html += "<tr>";
+        row.forEach((cell, i) => {
+          // もし i=0 → A列, i=1 → B列
+          html += `<td style="font-size:1.1rem;">${cell}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+
+      summaryDiv.innerHTML=html;
+    }
+
+    // arrival, departure => 状態テキスト
     function getStatusText(row){
       let st="未入場";
       if(row.arrival==="true" && row.departure==="false"){
@@ -283,7 +265,7 @@
       return st;
     }
 
-    // 全行が空の列を除外
+    // すべて空の列を除外
     function filterEmptyColumns(data, columns){
       return columns.filter(col=>{
         let hasVal=false;
@@ -294,12 +276,12 @@
             break;
           }
         }
-        return hasVal; 
+        return hasVal;
       });
     }
 
-    // テーブル
-    function renderTable(sheetName){
+    // シートテーブル描画
+    function renderSheetTable(sheetName){
       const container=document.getElementById("table-container");
       container.innerHTML="";
 
@@ -309,6 +291,7 @@
         return;
       }
 
+      // 状態テキスト付与
       data.forEach(r=>{
         if(!r.statusText){
           r.statusText=getStatusText(r);
@@ -327,8 +310,8 @@
         { key:"region",        header:"地域区分" }
       ];
 
+      // 全体(あいうえお順) だけ空欄列非表示
       let visibleCols=columns;
-      // 全体(あいうえお順) だけ空欄列除去
       if(sheetName.includes("全体(あいうえお順)")){
         visibleCols=filterEmptyColumns(data, columns);
         if(visibleCols.length===0){
@@ -339,7 +322,6 @@
 
       const table=document.createElement("table");
 
-      // thead
       const thead=document.createElement("thead");
       let thHtml="<tr>";
       visibleCols.forEach(col=>{
@@ -349,7 +331,6 @@
       thead.innerHTML=thHtml;
       table.appendChild(thead);
 
-      // tbody
       const tbody=document.createElement("tbody");
       data.forEach(row=>{
         let stClass="status-not-arrived";
@@ -375,47 +356,6 @@
       table.appendChild(tbody);
 
       container.appendChild(table);
-    }
-
-    // メニュー時に来場者内訳を表示
-    async function showSummaryTable(){
-      const summaryArea=document.getElementById("summary-table-area");
-      summaryArea.innerHTML="";
-      const res=await fetch("/summary-data");
-      if(!res.ok){
-        summaryArea.innerHTML="<p>来場者内訳の取得エラー</p>";
-        return;
-      }
-      const tableData=await res.json();
-      if(tableData.length===0){
-        summaryArea.innerHTML="<p>来場者内訳がありません</p>";
-        return;
-      }
-
-      let html=`<table class="summary-table"><tbody>`;
-      tableData.forEach(row=>{
-        const isSpecial=(row[0]==="総来場者数(新規含む)");
-        let rowStyle="";
-        if(isSpecial){
-          rowStyle=` style="background-color:#eee; font-weight:bold;"`;
-        }
-        html+=`<tr${rowStyle}>`;
-        // 1列目 => 右寄せ
-        if(row.length>0){
-          html+=`<td style="font-size:1.2rem; text-align:right;">${row[0]}</td>`;
-        }
-        // 2列目 => 左寄せ
-        if(row.length>1){
-          html+=`<td style="font-size:1.2rem; text-align:left;">${row[1]}</td>`;
-        }
-        // 3列目以降 => 中央
-        for(let c=2; c<row.length; c++){
-          html+=`<td style="font-size:1.2rem;">${row[c]}</td>`;
-        }
-        html+="</tr>";
-      });
-      html+="</tbody></table>";
-      summaryArea.innerHTML=html;
     }
   </script>
 </body>
