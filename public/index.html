@@ -4,126 +4,418 @@
   <meta charset="UTF-8" />
   <title>受付確認システム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
+    :root {
+      --primary: #2c3e50;
+      --primary-light: #34495e;
+      --accent: #3498db;
+      --accent-light: #5dade2;
+      --success: #2ecc71;
+      --warning: #f1c40f;
+      --danger: #e74c3c;
+      --light: #ecf0f1;
+      --dark: #2c3e50;
+      --gray: #95a5a6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --radius: 8px;
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      margin:0; padding:0;
-      font-family:Arial, sans-serif;
-      background:#fafafa; color:#333;
-      user-select:none;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--dark);
+      min-height: 100vh;
+      padding-bottom: 2rem;
+      user-select: none;
     }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1.5rem 0;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
     h1 {
-      margin:1rem 0;
-      text-align:center;
+      font-size: 2rem;
+      text-align: center;
+      margin: 0;
+      letter-spacing: 1px;
+      position: relative;
+      display: inline-block;
+      left: 50%;
+      transform: translateX(-50%);
     }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      width: 60%;
+      height: 3px;
+      background-color: var(--accent);
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 2px;
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
     /* タブ行 (PC表示) */
     .tabs {
-      display:flex;
-      gap:0.5rem;
-      justify-content:flex-start;
-      margin-bottom:0.5rem;
-      overflow-x:auto;
-      flex-wrap:nowrap;
-      padding:0 1rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-start;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding: 1rem;
+      background-color: var(--light);
+      border-bottom: 1px solid rgba(0,0,0,0.1);
     }
+
     .tab-button {
-      padding:0.8rem 1.2rem;
-      background:#ddd;
-      border:2px solid #666;
-      border-radius:5px;
-      cursor:pointer;
-      font-weight:bold;
-      white-space:nowrap;
+      padding: 0.8rem 1.2rem;
+      background: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: var(--transition);
+      color: var(--dark);
     }
+
+    .tab-button:hover {
+      background: rgba(255,255,255,0.9);
+      transform: translateY(-2px);
+    }
+
     .tab-button.active {
-      background:peachpuff;
-      border-color:#333;
+      background: var(--accent);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
     }
 
     /* モバイル用プルダウン */
+    .select-container {
+      position: relative;
+      max-width: 300px;
+      margin: 0 auto;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
     #tabSelect {
-      display:none;
-      margin:0 auto; margin-bottom:1rem;
-      max-width:300px;
-      font-size:1rem;
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius);
+      border: 2px solid var(--gray);
+      background-color: white;
+      font-size: 1rem;
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    #tabSelect:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--gray);
     }
 
     /* メインテーブル */
     .table-container {
-      width:95%; margin:0 auto; overflow-x:auto;
+      width: 100%;
+      margin: 0 auto;
+      overflow-x: auto;
+      padding: 0 1rem;
     }
+
     table {
-      width:100%;
-      min-width:1520px;
-      border-collapse:collapse;
-      border-spacing:0;
-      margin-top:0.5rem;
+      width: 100%;
+      min-width: 1520px;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 0.5rem;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
     }
-    th, td {
-      border:1px solid #ddd;
-      padding:0.8rem;
-      text-align:center;
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
     }
-    .status-coming    { background-color:#F0f080; color:#000; }
-    .status-leaving   { background-color:#0073a8; color:#000; }
-    .status-not-arrived { background-color:#fff;   color:#000; }
-    .status-cancelled { background-color:gray;   color:#fff; }
+
+    td {
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr {
+      transition: var(--transition);
+    }
+
+    tbody tr:hover {
+      background-color: rgba(0,0,0,0.02);
+    }
+
+    .status-coming {
+      background-color: rgba(46, 204, 113, 0.15);
+    }
+    
+    .status-leaving {
+      background-color: rgba(52, 152, 219, 0.15);
+    }
+    
+    .status-not-arrived {
+      background-color: white;
+    }
+    
+    .status-cancelled {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: var(--danger);
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-block;
+      padding: 0.4rem 0.8rem;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .badge-coming {
+      background-color: var(--success);
+      color: white;
+    }
+
+    .badge-leaving {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    .badge-not-arrived {
+      background-color: var(--gray);
+      color: white;
+    }
+
+    .badge-cancelled {
+      background-color: var(--danger);
+      color: white;
+    }
 
     /* 来場者内訳テーブル */
-    .summary-table {
-      border-collapse:collapse;
-      border-spacing:0;
-      margin:1rem auto 0;
-      min-width:300px; max-width:620px;
-    }
-    .summary-table th, .summary-table td {
-      border:1px solid #aaa; padding:0.5rem; text-align:center;
+    .summary-container {
+      display: flex;
+      justify-content: center;
+      padding: 0 1rem;
     }
 
-    @media (max-width:600px) {
-      /* 幅600px以下 → PCタブを隠し、プルダウン表示 */
+    .summary-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 1rem auto;
+      min-width: 300px;
+      max-width: 620px;
+      background: white;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      width: 100%;
+    }
+
+    .summary-table th {
+      background-color: var(--primary-light);
+      color: white;
+      padding: 0.8rem;
+      text-align: center;
+    }
+
+    .summary-table td {
+      border: none;
+      padding: 0.8rem;
+      text-align: center;
+      font-size: 1.1rem;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .summary-table tr:nth-child(odd) {
+      background-color: rgba(0,0,0,0.02);
+    }
+
+    .refreshing {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+    }
+
+    .refreshing.visible {
+      opacity: 1;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 3rem;
+      color: var(--gray);
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      /* 幅768px以下 → PCタブを隠し、プルダウン表示 */
       .tabs {
-        display:none !important;
+        display: none !important;
       }
-      #tabSelect {
-        display:block !important;
+      
+      .select-container {
+        display: block !important;
       }
 
       table {
-        min-width:770px;
+        min-width: 770px;
       }
+      
       th, td {
-        font-size:0.5rem;
-        padding:0.3rem;
+        font-size: 0.9rem;
+        padding: 0.5rem;
       }
+      
       h1 {
-        font-size:15px;
+        font-size: 1.5rem;
+      }
+
+      .status-badge {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      th, td {
+        font-size: 0.8rem;
+        padding: 0.4rem;
       }
     }
   </style>
 </head>
 <body>
-  <h1 id="page-title">Loading...</h1>
+  <div class="refreshing" id="refreshNotice">
+    <div class="spinner"></div>
+    <span>データ更新中...</span>
+  </div>
 
-  <!-- PCタブ / モバイルプルダウン -->
-  <div class="tabs" id="tabs"></div>
-  <select id="tabSelect"></select>
+  <header>
+    <div class="container">
+      <h1 id="page-title">読み込み中...</h1>
+    </div>
+  </header>
 
-  <!-- テーブル表示領域 -->
-  <div class="table-container" id="table-container"></div>
+  <div class="container">
+    <div class="card">
+      <!-- PCタブ -->
+      <div class="tabs" id="tabs"></div>
+      
+      <!-- モバイルプルダウン -->
+      <div class="select-container">
+        <select id="tabSelect"></select>
+        <div class="select-arrow">
+          <i class="fas fa-chevron-down"></i>
+        </div>
+      </div>
+    </div>
 
-  <!-- メニュー(来場者内訳) 表示領域 -->
-  <div id="summary-table-area" style="width:95%; margin:0 auto;"></div>
+    <!-- テーブル表示領域 -->
+    <div class="card">
+      <div class="table-container" id="table-container"></div>
+    </div>
+
+    <!-- メニュー(来場者内訳) 表示領域 -->
+    <div class="summary-container">
+      <div id="summary-table-area"></div>
+    </div>
+  </div>
 
   <script>
     let tabList = [];       // ["メニュー", <sheet1>, <sheet2>, ...]
     let allData = {};       // { sheetName: [ {...}, {...} ], ... }
     let currentTab = "";    // 今アクティブなタブ ("メニュー" or シート名)
+    let isRefreshing = false; // データ更新中フラグ
 
     window.addEventListener("DOMContentLoaded", async () => {
       // 1) /info でシート一覧取得
       const infoRes = await fetch("/info");
       const info = await infoRes.json();
-      document.getElementById("page-title").textContent = info.title || "スプレッドシート";
+      document.getElementById("page-title").textContent = info.title || "受付確認システム";
+      document.title = info.title || "受付確認システム";
 
       // tabList[0] = "メニュー", それ以降が info.sheetNames
       tabList = ["メニュー", ...info.sheetNames];
@@ -139,24 +431,45 @@
 
       // 30秒ポーリング
       setInterval(async () => {
+        showRefreshNotice(true);
         await fetchAllData();
-        if (currentTab==="メニュー") {
+        if (currentTab === "メニュー") {
           showSummaryTable(); // メニュー時→来場者内訳
         } else if (currentTab) {
           renderSheetTable(currentTab);
         }
+        showRefreshNotice(false);
       }, 30000);
     });
 
+    // データ更新通知表示
+    function showRefreshNotice(show) {
+      const notice = document.getElementById("refreshNotice");
+      isRefreshing = show;
+      
+      if (show) {
+        notice.classList.add("visible");
+      } else {
+        notice.classList.remove("visible");
+      }
+    }
+
     // batch-data取得
     async function fetchAllData() {
-      const res = await fetch("/batch-data");
-      if (!res.ok) {
-        console.error("[fetchAllData] error", res.status);
-        return;
+      showRefreshNotice(true);
+      try {
+        const res = await fetch("/batch-data");
+        if (!res.ok) {
+          console.error("[fetchAllData] error", res.status);
+          return;
+        }
+        allData = await res.json();
+        console.log("[fetchAllData]", allData);
+      } catch (error) {
+        console.error("[fetchAllData] fetch error", error);
+      } finally {
+        showRefreshNotice(false);
       }
-      allData = await res.json();
-      console.log("[fetchAllData]", allData);
     }
 
     // PCタブ & モバイルプルダウン生成
@@ -202,7 +515,7 @@
       document.getElementById("tabSelect").value = tabName;
 
       // 表示切り替え
-      if (tabName==="メニュー") {
+      if (tabName === "メニュー") {
         // 来場者内訳
         document.getElementById("table-container").innerHTML = "";
         showSummaryTable();
@@ -218,61 +531,93 @@
       const summaryDiv = document.getElementById("summary-table-area");
       summaryDiv.innerHTML = "";
 
-      // 例: A,B の 1~9 行
-      // → '来場数内訳'!A1:B9 にする(質問に合わせ)
-      const range = `'来場数内訳'!A1:B9`;
-      // 今回はサーバー側に /summary-data あり, そちらがA1~E13取得...
-      // 要件「A,Bの1~9」なら server.js で rangeを A1:B9 に変える or
-      // フロントから /summary-data?range=? ... など。簡便のため /summary-data 使う例にしますが、
-      // もし固定ならserver.jsで range: "'来場数内訳'!A1:B9" に変えて下さい
+      showRefreshNotice(true);
 
-      const res = await fetch("/summary-data");
-      if (!res.ok) {
-        summaryDiv.innerHTML = "<p>来場者内訳取得エラー</p>";
-        return;
-      }
-      const tableData = await res.json();
-      if (tableData.length===0){
-        summaryDiv.innerHTML="<p>来場者内訳がありません</p>";
-        return;
-      }
+      try {
+        const res = await fetch("/summary-data");
+        if (!res.ok) {
+          summaryDiv.innerHTML = '<div class="empty-message"><i class="fas fa-exclamation-circle"></i> 来場者内訳取得エラー</div>';
+          return;
+        }
+        const tableData = await res.json();
+        if (tableData.length === 0) {
+          summaryDiv.innerHTML = '<div class="empty-message"><i class="fas fa-info-circle"></i> 来場者内訳がありません</div>';
+          return;
+        }
 
-      let html = `<table class="summary-table"><tbody>`;
-      tableData.forEach(row => {
-        html += "<tr>";
-        row.forEach((cell, i) => {
-          // もし i=0 → A列, i=1 → B列
-          html += `<td style="font-size:1.1rem;">${cell}</td>`;
+        let html = `<table class="summary-table"><tbody>`;
+        tableData.forEach((row, rowIndex) => {
+          html += "<tr>";
+          row.forEach((cell, i) => {
+            // 行によって異なるスタイリング
+            const isHeader = rowIndex === 0;
+            if (isHeader) {
+              html += `<th>${cell}</th>`;
+            } else {
+              html += `<td>${cell}</td>`;
+            }
+          });
+          html += "</tr>";
         });
-        html += "</tr>";
-      });
-      html += "</tbody></table>";
+        html += "</tbody></table>";
 
-      summaryDiv.innerHTML=html;
+        summaryDiv.innerHTML = html;
+      } catch (error) {
+        console.error("[showSummaryTable] error", error);
+        summaryDiv.innerHTML = '<div class="empty-message"><i class="fas fa-exclamation-circle"></i> データ取得中にエラーが発生しました</div>';
+      } finally {
+        showRefreshNotice(false);
+      }
     }
 
     // arrival, departure => 状態テキスト
-    function getStatusText(row){
-      let st="未入場";
-      if(row.arrival==="true" && row.departure==="false"){
-        st="来場中";
-      } else if(row.departure==="true"){
-        st="退場済み";
+    function getStatusText(row) {
+      let st = "未入場";
+      if (row.arrival === "true" && row.departure === "false") {
+        st = "来場中";
+      } else if (row.departure === "true") {
+        st = "退場済み";
       }
-      if(row.canceledByO){
-        st="キャンセル";
+      if (row.canceledByO) {
+        st = "キャンセル";
       }
       return st;
     }
 
+    // 状態に応じたバッジHTML取得
+    function getStatusBadge(status) {
+      let badgeClass = "";
+      let icon = "";
+      
+      switch (status) {
+        case "来場中":
+          badgeClass = "badge-coming";
+          icon = '<i class="fas fa-user-check"></i> ';
+          break;
+        case "退場済み":
+          badgeClass = "badge-leaving";
+          icon = '<i class="fas fa-sign-out-alt"></i> ';
+          break;
+        case "キャンセル":
+          badgeClass = "badge-cancelled";
+          icon = '<i class="fas fa-ban"></i> ';
+          break;
+        default:
+          badgeClass = "badge-not-arrived";
+          icon = '<i class="fas fa-hourglass-half"></i> ';
+      }
+      
+      return `<span class="status-badge ${badgeClass}">${icon}${status}</span>`;
+    }
+
     // すべて空の列を除外
-    function filterEmptyColumns(data, columns){
-      return columns.filter(col=>{
-        let hasVal=false;
-        for(const r of data){
-          const val=(r[col.key]||"").trim();
-          if(val!==""){
-            hasVal=true;
+    function filterEmptyColumns(data, columns) {
+      return columns.filter(col => {
+        let hasVal = false;
+        for (const r of data) {
+          const val = (r[col.key] || "").trim();
+          if (val !== "") {
+            hasVal = true;
             break;
           }
         }
@@ -281,76 +626,80 @@
     }
 
     // シートテーブル描画
-    function renderSheetTable(sheetName){
-      const container=document.getElementById("table-container");
-      container.innerHTML="";
+    function renderSheetTable(sheetName) {
+      const container = document.getElementById("table-container");
+      container.innerHTML = "";
 
-      const data=allData[sheetName]||[];
-      if(data.length===0){
-        container.innerHTML="<p>該当データがありません。</p>";
+      const data = allData[sheetName] || [];
+      if (data.length === 0) {
+        container.innerHTML = '<div class="empty-message"><i class="fas fa-info-circle"></i> 該当データがありません。</div>';
         return;
       }
 
       // 状態テキスト付与
-      data.forEach(r=>{
-        if(!r.statusText){
-          r.statusText=getStatusText(r);
+      data.forEach(r => {
+        if (!r.statusText) {
+          r.statusText = getStatusText(r);
         }
       });
 
-      const columns=[
-        { key:"no",            header:"No" },
-        { key:"statusText",    header:"状態" },
-        { key:"drName",        header:"DR氏名" },
-        { key:"furigana",      header:"フリガナ" },
-        { key:"facility",      header:"施設名" },
-        { key:"remarks",       header:"備考" },
-        { key:"arrivalTime",   header:"ご来場時間" },
-        { key:"departureTime", header:"ご退場時間" },
-        { key:"region",        header:"地域区分" }
+      const columns = [
+        { key: "no", header: "No" },
+        { key: "statusText", header: "状態" },
+        { key: "drName", header: "DR氏名" },
+        { key: "furigana", header: "フリガナ" },
+        { key: "facility", header: "施設名" },
+        { key: "remarks", header: "備考" },
+        { key: "arrivalTime", header: "ご来場時間" },
+        { key: "departureTime", header: "ご退場時間" },
+        { key: "region", header: "地域区分" }
       ];
 
       // 全体(あいうえお順) だけ空欄列非表示
-      let visibleCols=columns;
-      if(sheetName.includes("全体(あいうえお順)")){
-        visibleCols=filterEmptyColumns(data, columns);
-        if(visibleCols.length===0){
-          container.innerHTML="<p>すべて空欄のため表示できる列がありません。</p>";
+      let visibleCols = columns;
+      if (sheetName.includes("全体(あいうえお順)")) {
+        visibleCols = filterEmptyColumns(data, columns);
+        if (visibleCols.length === 0) {
+          container.innerHTML = '<div class="empty-message"><i class="fas fa-exclamation-triangle"></i> すべて空欄のため表示できる列がありません。</div>';
           return;
         }
       }
 
-      const table=document.createElement("table");
+      const table = document.createElement("table");
 
-      const thead=document.createElement("thead");
-      let thHtml="<tr>";
-      visibleCols.forEach(col=>{
-        thHtml+=`<th>${col.header}</th>`;
+      const thead = document.createElement("thead");
+      let thHtml = "<tr>";
+      visibleCols.forEach(col => {
+        thHtml += `<th>${col.header}</th>`;
       });
-      thHtml+="</tr>";
-      thead.innerHTML=thHtml;
+      thHtml += "</tr>";
+      thead.innerHTML = thHtml;
       table.appendChild(thead);
 
-      const tbody=document.createElement("tbody");
-      data.forEach(row=>{
-        let stClass="status-not-arrived";
-        if(row.statusText==="来場中"){
-          stClass="status-coming";
-        } else if(row.statusText==="退場済み"){
-          stClass="status-leaving";
-        } else if(row.statusText==="キャンセル"){
-          stClass="status-cancelled";
+      const tbody = document.createElement("tbody");
+      data.forEach(row => {
+        let stClass = "status-not-arrived";
+        if (row.statusText === "来場中") {
+          stClass = "status-coming";
+        } else if (row.statusText === "退場済み") {
+          stClass = "status-leaving";
+        } else if (row.statusText === "キャンセル") {
+          stClass = "status-cancelled";
         }
 
-        const tr=document.createElement("tr");
+        const tr = document.createElement("tr");
         tr.classList.add(stClass);
 
-        let tdHtml="";
-        visibleCols.forEach(col=>{
-          const val=(row[col.key]||"").trim();
-          tdHtml+=`<td>${val}</td>`;
+        let tdHtml = "";
+        visibleCols.forEach(col => {
+          const val = (row[col.key] || "").trim();
+          if (col.key === "statusText") {
+            tdHtml += `<td>${getStatusBadge(val)}</td>`;
+          } else {
+            tdHtml += `<td>${val}</td>`;
+          }
         });
-        tr.innerHTML=tdHtml;
+        tr.innerHTML = tdHtml;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
