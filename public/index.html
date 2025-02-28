@@ -198,12 +198,10 @@
       transition: var(--transition);
     }
 
-    tbody tr:hover {
-      background-color: rgba(0,0,0,0.02);
-    }
+    /* ホバー効果を削除 */
 
     .status-coming {
-      background-color: rgba(46, 204, 113, 0.15);
+      background-color: rgba(241, 196, 15, 0.15);
     }
     
     .status-leaving {
@@ -230,8 +228,8 @@
     }
 
     .badge-coming {
-      background-color: var(--success);
-      color: white;
+      background-color: var(--warning);
+      color: var(--dark);
     }
 
     .badge-leaving {
@@ -282,6 +280,12 @@
       text-align: center;
       font-size: 1.1rem;
       border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .summary-table td:first-child {
+      font-weight: 500;
+      text-align: left;
+      padding-left: 1.5rem;
     }
 
     .summary-table tr:nth-child(odd) {
@@ -545,20 +549,66 @@
           return;
         }
 
+        // サーバーからのデータを変更した形式に整形
+        // サーバーから取得したデータを処理して、要求された形式に変換
+        // 必要な情報を抽出（実際のAPIからのデータ形式に合わせて調整する必要があります）
+        let totalRegistered = 0;
+        let totalVisitors = 0;
+        let totalCancelled = 0;
+        let totalNewVisitors = 0;
+        let totalLeaving = 0;
+        
+        // 例: tableDataからそれぞれの値を取得
+        // 注: 実際のデータ構造に合わせて調整が必要
+        for (const row of tableData) {
+          if (row[0] === "総登録者数" && row[1]) totalRegistered = row[1];
+          if (row[0] === "来場者数" && row[1]) totalVisitors = row[1];
+          if (row[0] === "キャンセル数" && row[1]) totalCancelled = row[1];
+          if (row[0] === "新規来場者数" && row[1]) totalNewVisitors = row[1];
+          if (row[0] === "退場数" && row[1]) totalLeaving = row[1];
+        }
+
+        // 新しいフォーマットでテーブルを作成
         let html = `<table class="summary-table"><tbody>`;
-        tableData.forEach((row, rowIndex) => {
-          html += "<tr>";
-          row.forEach((cell, i) => {
-            // 行によって異なるスタイリング
-            const isHeader = rowIndex === 0;
-            if (isHeader) {
-              html += `<th>${cell}</th>`;
-            } else {
-              html += `<td>${cell}</td>`;
-            }
-          });
-          html += "</tr>";
-        });
+        
+        // セクション1: 総登録者と来場者
+        html += `
+          <tr>
+            <th colspan="2">登録・来場状況</th>
+          </tr>
+          <tr>
+            <td>総登録者</td>
+            <td>${totalRegistered}</td>
+          </tr>
+          <tr>
+            <td>来場者（新規含む）</td>
+            <td style="font-size: 1.5rem; font-weight: bold;">${totalVisitors}</td>
+          </tr>`;
+          
+        // セクション2: その他（キャンセルと新規）
+        html += `
+          <tr>
+            <th colspan="2">その他</th>
+          </tr>
+          <tr>
+            <td>キャンセル</td>
+            <td>${totalCancelled}</td>
+          </tr>
+          <tr>
+            <td>新規</td>
+            <td>${totalNewVisitors}</td>
+          </tr>`;
+          
+        // セクション3: 退場数
+        html += `
+          <tr>
+            <th colspan="2">退場状況</th>
+          </tr>
+          <tr>
+            <td>退場済み</td>
+            <td>${totalLeaving}</td>
+          </tr>`;
+          
         html += "</tbody></table>";
 
         summaryDiv.innerHTML = html;
