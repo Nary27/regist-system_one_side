@@ -549,24 +549,15 @@
           return;
         }
 
-        // サーバーからのデータを変更した形式に整形
-        // サーバーから取得したデータを処理して、要求された形式に変換
-        // 必要な情報を抽出（実際のAPIからのデータ形式に合わせて調整する必要があります）
-        let totalRegistered = 0;
-        let totalVisitors = 0;
-        let totalCancelled = 0;
-        let totalNewVisitors = 0;
-        let totalLeaving = 0;
-        
-        // 例: tableDataからそれぞれの値を取得
-        // 注: 実際のデータ構造に合わせて調整が必要
-        for (const row of tableData) {
-          if (row[0] === "総登録者数" && row[1]) totalRegistered = row[1];
-          if (row[0] === "来場者数" && row[1]) totalVisitors = row[1];
-          if (row[0] === "キャンセル数" && row[1]) totalCancelled = row[1];
-          if (row[0] === "新規来場者数" && row[1]) totalNewVisitors = row[1];
-          if (row[0] === "退場数" && row[1]) totalLeaving = row[1];
-        }
+        console.log("取得した内訳データ:", tableData); // デバッグ用
+
+        // スプレッドシートの特定のセルからデータを取得
+        // B1: 総登録者数, B2: 総来場者数(新規含む), B3: 新規, B5: キャンセル, B7: 退場済み
+        let totalRegistered = tableData[0][1] || 0;  // B1
+        let totalVisitors = tableData[1][1] || 0;    // B2
+        let totalNewVisitors = tableData[2][1] || 0; // B3
+        let totalCancelled = tableData[4][1] || 0;   // B5
+        let totalLeaving = tableData[6][1] || 0;     // B7
 
         // 新しいフォーマットでテーブルを作成
         let html = `<table class="summary-table"><tbody>`;
