@@ -668,7 +668,15 @@
 
     // すべて空の列を除外
     function filterEmptyColumns(data, columns) {
+      // 重要なカラムは常に表示するためのリスト
+      const essentialColumns = ["statusText", "drName", "facility"];
+      
       return columns.filter(col => {
+        // 重要カラムの場合は常に表示
+        if (essentialColumns.includes(col.key)) {
+          return true;
+        }
+        
         let hasVal = false;
         for (const r of data) {
           const val = (r[col.key] || "").trim();
@@ -692,11 +700,16 @@
         return;
       }
 
-      // 状態テキスト付与
+      // データ取得時に不足フィールドの初期化
       data.forEach(r => {
+        // 状態テキスト付与
         if (!r.statusText) {
           r.statusText = getStatusText(r);
         }
+        
+        // 新しく追加したカラムのフィールドが存在しない場合、空の値で初期化
+        if (r.honorific === undefined) r.honorific = "";
+        if (r.facilityLocation === undefined) r.facilityLocation = "";
       });
 
       const columns = [
