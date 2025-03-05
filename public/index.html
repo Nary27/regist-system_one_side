@@ -728,15 +728,8 @@
         { key: "region", header: "地域区分", width: "100px" }
       ];
 
-      // 全体(あいうえお順) だけ空欄列非表示
+      // 全体(あいうえお順) だけ空欄列非表示 → 全列表示に変更
       let visibleCols = columns;
-      if (sheetName.includes("全体(あいうえお順)")) {
-        visibleCols = filterEmptyColumns(data, columns);
-        if (visibleCols.length === 0) {
-          container.innerHTML = '<div class="empty-message"><i class="fas fa-exclamation-triangle"></i> すべて空欄のため表示できる列がありません。</div>';
-          return;
-        }
-      }
 
       const table = document.createElement("table");
 
