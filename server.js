@@ -90,30 +90,35 @@ async function getMultipleSheetsData(sheetNames){
       const sheetName=rawSheetName.replace(/^'/,"").replace(/'$/,"");
       const rawData=vr.values||[];
       const parsed=rawData.slice(1).map(row=>{
-        // B=0, C=1, D=2, E=3 ... N=12
-        const no        = row[0]||"";
-        const rawArr    = (row[1]||"").toUpperCase();
-        const rawDep    = (row[2]||"").toUpperCase();
-        const drName    = row[3]||"";
-        const gBlank    = row[4]||"";
-        const furigana  = row[5]||"";
-        const facility  = row[6]||"";
-        const remarks   = row[7]||"";
-        const arrTime   = row[9]||"";
-        const depTime   = row[10]||"";
-        const region    = row[11]||"";
-        const rawCancel = (row[12]||"").toUpperCase();
+        // スプレッドシートのデータ
+        // B[0]=No、C[1]=来場、D[2]=退場、E[3]=DR氏名、F[4]=敬称、G[5]=フリガナ
+        // H[6]=施設名、I[7]=備考、K[9]=来場時間、L[10]=退場時間、M[11]=施設所在地、N[12]=地域区分、O[13]=キャンセル
+        const no          = row[0]||"";
+        const rawArr      = (row[1]||"").toUpperCase();
+        const rawDep      = (row[2]||"").toUpperCase();
+        const drName      = row[3]||"";
+        const honorific   = row[4]||"";  // 敬称
+        const furigana    = row[5]||"";
+        const facility    = row[6]||"";
+        const remarks     = row[7]||"";
+        const arrTime     = row[9]||"";
+        const depTime     = row[10]||"";
+        const facilityLocation = row[11]||"";  // 施設所在地
+        const region      = row[12]||"";
+        const rawCancel   = (row[13]||"").toUpperCase();
+        
         return {
           no,
           arrival:(rawArr==="TRUE")?"true":"false",
           departure:(rawDep==="TRUE")?"true":"false",
           drName,
-          gBlank,
+          honorific,
           furigana,
           facility,
           remarks,
           arrivalTime:arrTime,
           departureTime:depTime,
+          facilityLocation,
           region,
           canceledByO:(rawCancel==="TRUE")
         };

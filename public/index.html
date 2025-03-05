@@ -191,7 +191,7 @@
     }
 
     /* カラム特定スタイル */
-    td.facility-cell {
+    td.facility-cell, td.location-cell {
       text-align: left;
     }
 
@@ -483,7 +483,14 @@
           return;
         }
         allData = await res.json();
-        console.log("[fetchAllData]", allData);
+        
+        // データ構造を確認（デバッグ用）
+        if (Object.keys(allData).length > 0) {
+          const firstSheet = Object.keys(allData)[0];
+          if (allData[firstSheet] && allData[firstSheet].length > 0) {
+            console.log("データサンプル:", allData[firstSheet][0]);
+          }
+        }
       } catch (error) {
         console.error("[fetchAllData] fetch error", error);
       } finally {
@@ -700,25 +707,21 @@
         return;
       }
 
-      // データ取得時に不足フィールドの初期化
+      // 状態テキスト付与
       data.forEach(r => {
-        // 状態テキスト付与
         if (!r.statusText) {
           r.statusText = getStatusText(r);
         }
-        
-        // 新しく追加したカラムのフィールドが存在しない場合、空の値で初期化
-        if (r.honorific === undefined) r.honorific = "";
-        if (r.facilityLocation === undefined) r.facilityLocation = "";
       });
 
+      // カラム定義 - サーバーから返されるデータフィールドと一致
       const columns = [
         { key: "statusText", header: "状態" },
         { key: "drName", header: "DR氏名", width: "150px" },
         { key: "honorific", header: "敬称", width: "60px" },
         { key: "furigana", header: "フリガナ", fontSize: "0.8rem", width: "150px" },
         { key: "facility", header: "施設名", className: "facility-cell", width: "225px" },
-        { key: "facilityLocation", header: "施設所在地", width: "120px" },
+        { key: "facilityLocation", header: "施設所在地", className: "location-cell", width: "120px" },
         { key: "remarks", header: "備考" },
         { key: "arrivalTime", header: "来場<br>時間", className: "time-cell" },
         { key: "departureTime", header: "退場<br>時間", className: "time-cell" },
