@@ -190,6 +190,15 @@
       border-bottom: 1px solid rgba(0,0,0,0.05);
     }
 
+    /* カラム特定スタイル */
+    td.facility-cell {
+      text-align: left;
+    }
+
+    td.time-cell {
+      font-size: 0.9rem;
+    }
+
     tr:last-child td {
       border-bottom: none;
     }
@@ -346,7 +355,7 @@
       }
 
       table {
-        min-width: 770px;
+        min-width: 700px;
       }
       
       th, td {
@@ -361,6 +370,10 @@
       .status-badge {
         padding: 0.3rem 0.6rem;
         font-size: 0.7rem;
+      }
+      
+      td.time-cell {
+        font-size: 0.8rem;
       }
     }
 
@@ -639,7 +652,7 @@
         case "退場済み":
           badgeClass = "badge-leaving";
           icon = '<i class="fas fa-sign-out-alt"></i> ';
-          break;
+          return `<span class="status-badge ${badgeClass}">${icon}退場済</span>`;
         case "キャンセル":
           badgeClass = "badge-cancelled";
           icon = '<i class="fas fa-ban"></i> ';
@@ -686,14 +699,13 @@
       });
 
       const columns = [
-        { key: "no", header: "No" },
         { key: "statusText", header: "状態" },
-        { key: "drName", header: "DR氏名" },
-        { key: "furigana", header: "フリガナ" },
-        { key: "facility", header: "施設名" },
+        { key: "drName", header: "DR氏名", width: "150px" },
+        { key: "furigana", header: "フリガナ", fontSize: "0.8rem" },
+        { key: "facility", header: "施設名", className: "facility-cell" },
         { key: "remarks", header: "備考" },
-        { key: "arrivalTime", header: "ご来場時間" },
-        { key: "departureTime", header: "ご退場時間" },
+        { key: "arrivalTime", header: "来場時間", className: "time-cell" },
+        { key: "departureTime", header: "退場時間", className: "time-cell" },
         { key: "region", header: "地域区分" }
       ];
 
@@ -712,7 +724,7 @@
       const thead = document.createElement("thead");
       let thHtml = "<tr>";
       visibleCols.forEach(col => {
-        thHtml += `<th>${col.header}</th>`;
+        thHtml += `<th${col.width ? ` style="min-width:${col.width};"` : ''}>${col.header}</th>`;
       });
       thHtml += "</tr>";
       thead.innerHTML = thHtml;
@@ -737,8 +749,11 @@
           const val = (row[col.key] || "").trim();
           if (col.key === "statusText") {
             tdHtml += `<td>${getStatusBadge(val)}</td>`;
+          } else if (col.key === "furigana") {
+            tdHtml += `<td style="font-size:${col.fontSize || '1rem'}">${val}</td>`;
           } else {
-            tdHtml += `<td>${val}</td>`;
+            let className = col.className || '';
+            tdHtml += `<td class="${className}">${val}</td>`;
           }
         });
         tr.innerHTML = tdHtml;
