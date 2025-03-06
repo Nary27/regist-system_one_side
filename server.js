@@ -24,6 +24,7 @@ const EXCLUDED_SHEETS = [
   "リーダー",
   "NPKK営業所分類",
   "来場数内訳_NPKK",
+  "抜粋",
   "履歴"
 ];
 
@@ -41,7 +42,7 @@ function basicAuth(req, res, next) {
   const base64 = authHeader.split(" ")[1];
   const decoded = Buffer.from(base64,"base64").toString();
   const [user, pass] = decoded.split(":");
-  if (user==="0309" && pass==="NPKK"){
+  if (user==="test" && pass==="1771"){
     next();
   } else {
     res.setHeader("WWW-Authenticate",'Basic realm="Restricted"');
