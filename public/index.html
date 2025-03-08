@@ -343,6 +343,23 @@
       color: var(--gray);
       font-style: italic;
     }
+    
+    .retry-button {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.9rem;
+    }
+    
+    .retry-button:hover {
+      background-color: var(--accent-light);
+    }
 
     @media (max-width: 768px) {
       /* 幅768px以下 → PCタブを隠し、プルダウン表示 */
@@ -580,7 +597,7 @@
         let totalVisitors = tableData[1][1] || 0;    // B2
         let totalNewVisitors = tableData[2][1] || 0; // B3
         let totalCancelled = tableData[4][1] || 0;   // B5
-        let totalLeaving = tableData[5][1] || 0;     // B6 総退場者数
+        let totalLeaving = tableData[6][1] || 0;     // B7
 
         // 新しいフォーマットでテーブルを作成
         let html = `<table class="summary-table"><tbody>`;
@@ -634,7 +651,15 @@
       }
     }
 
-    // arrival, departure => 状態テキスト
+    // データ再取得と現在のタブ再描画
+    async function fetchAllDataAndRenderCurrent() {
+      await fetchAllData();
+      if (currentTab === "メニュー") {
+        showSummaryTable();
+      } else if (currentTab) {
+        renderSheetTable(currentTab);
+      }
+    }
     function getStatusText(row) {
       let st = "未入場";
       if (row.arrival === "true" && row.departure === "false") {
